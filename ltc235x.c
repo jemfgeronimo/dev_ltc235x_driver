@@ -88,7 +88,9 @@ static int ltc235x_set_softspan (struct iio_dev *indio_dev, struct iio_chan_spec
 	int ch_id = chan.channel;
 
 	if (ch_id < 0 || ch_id > 7)
-		return // todo error
+		return // todo invalid channel id
+	if (softspan < 0 || softspan > 7)
+		return // todo: invalid softspan
 
 	// write softspan to a channel depending on what channel id
 	axi_ltc235x_write(st, LTC235X_SOFTSPAN_ADDR(ch_id), softspan); // todo: i need the register address of softspan here
