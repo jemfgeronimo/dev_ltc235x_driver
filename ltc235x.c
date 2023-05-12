@@ -1,4 +1,5 @@
 #include <linux/device.h>
+#include <linux/io.h>
 #include <linux/mod_devicetable.h>
 #include <linux/platform_device.h>
 
@@ -14,7 +15,16 @@
 
 #define LTC235X_NUM_CHANNELS	8
 #define LTC235X_NUM_BITS 	18
-#define LTC235X_SOFTSPAN_ADDR // todo
+
+// TODO
+#define LTC235X_SOFTSPAN_CHAN0_ADDR
+#define LTC235X_SOFTSPAN_CHAN1_ADDR
+#define LTC235X_SOFTSPAN_CHAN2_ADDR
+#define LTC235X_SOFTSPAN_CHAN3_ADDR
+#define LTC235X_SOFTSPAN_CHAN4_ADDR
+#define LTC235X_SOFTSPAN_CHAN5_ADDR
+#define LTC235X_SOFTSPAN_CHAN6_ADDR
+#define LTC235X_SOFTSPAN_CHAN7_ADDR
 
 #define SAMP_FREQ_MAX // todo
 #define SAMP_FREQ_MIN // todo
@@ -24,6 +34,7 @@ struct ltc235x_state {
 	struct mutex		lock;
 	struct pwm_device	cnv_pwm;
 	unsigned int 		samp_freq;
+	void __iomem		*regs;
 };
 
 static int ltc235x_read_raw (struct iio_dev *indio_dev,
@@ -31,10 +42,10 @@ static int ltc235x_read_raw (struct iio_dev *indio_dev,
 {
 	switch (info) {
 	case IIO_CHAN_INFO_RAW:
-		// this here needs the dma buffer
+		// this here needs the dma buffer ?? todo
 		break;
 	case IIO_CHAN_INFO_SAMP_FREQ:
-		
+		// todo: return current samp freq
 		break;
 	default:
 		return -EINVAL;
@@ -68,10 +79,53 @@ static int ltc235x_set_sampling_freq (struct iio_dev *indio_dev, unsigned int fr
 	return ret
 }
 
+static void axi_ltc235x_write(struct ltc235x_state *st, unsigned int addr, unsigned int writeval)
+{
+	return iowrite32(writeval, st->regs + addr);
+}
+
+static void axi_ltc235x_read(struct ltc235x_state *st, unsigned int addr)
+{
+	return ioread32(st->regs + addr);
+}
+
 static int ltc235x_set_softspan (struct iio_dev *indio_dev, struct iio_chan_spec const *chan, int softspan)
 {
-	// todo
-	// i think i need the register address of softspan here
+	struct ltc235x_state *st = iio_priv(indio_dev);
+	int ch_id = chan.channel;
+	int addr;
+
+	switch (ch_id) {
+		case 0:
+			addr = LTC235X_SOFTSPAN_CHAN0_ADDR;
+			break;
+		case 1:
+			addr = LTC235X_SOFTSPAN_CHAN1_ADDR;
+			break;
+		case 2:
+			addr = LTC235X_SOFTSPAN_CHAN2_ADDR;
+			break;
+		case 3:
+			addr = LTC235X_SOFTSPAN_CHAN3_ADDR;
+			break;
+		case 4:
+			addr = LTC235X_SOFTSPAN_CHAN4_ADDR;
+			break;
+		case 5:
+			addr = LTC235X_SOFTSPAN_CHAN5_ADDR;
+			break;
+		case 6:
+			addr = LTC235X_SOFTSPAN_CHAN6_ADDR;
+			break;
+		case 7:
+			addr = LTC235X_SOFTSPAN_CHAN7_ADDR;
+			break;
+		default:
+			// return error
+	}
+
+	// write softspan to a channel depending on what channel id
+	axi_ltc235x_write(st, addr, softspan); // todo: i need the register address of softspan here
 	return 0
 }
 
@@ -126,6 +180,10 @@ static int ltc235x_probe (struct platform_device *pdev)
 	if (IS_ERR(buffer))
 		return PTR_ERR(buffer);
 	iio_device_attach_buffer(indio_dev, buffer);
+
+	st->regs = devm_platform_ioremap_resource(pdev, 0);
+	if (IS_ERR(st->regs))
+		return PTR_ERR(st->regs);
 
 	// todo
 	// set default samp frequency
