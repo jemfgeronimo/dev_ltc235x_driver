@@ -17,14 +17,7 @@
 #define LTC235X_NUM_BITS 	18
 
 // TODO
-#define LTC235X_SOFTSPAN_CHAN0_ADDR
-#define LTC235X_SOFTSPAN_CHAN1_ADDR
-#define LTC235X_SOFTSPAN_CHAN2_ADDR
-#define LTC235X_SOFTSPAN_CHAN3_ADDR
-#define LTC235X_SOFTSPAN_CHAN4_ADDR
-#define LTC235X_SOFTSPAN_CHAN5_ADDR
-#define LTC235X_SOFTSPAN_CHAN6_ADDR
-#define LTC235X_SOFTSPAN_CHAN7_ADDR
+#define LTC235X_SOFTSPAN_ADDR(ch_id)	(0x0428 + (ch_id) * 0x40)
 
 #define SAMP_FREQ_MAX // todo
 #define SAMP_FREQ_MIN // todo
@@ -93,39 +86,12 @@ static int ltc235x_set_softspan (struct iio_dev *indio_dev, struct iio_chan_spec
 {
 	struct ltc235x_state *st = iio_priv(indio_dev);
 	int ch_id = chan.channel;
-	int addr;
 
-	switch (ch_id) {
-		case 0:
-			addr = LTC235X_SOFTSPAN_CHAN0_ADDR;
-			break;
-		case 1:
-			addr = LTC235X_SOFTSPAN_CHAN1_ADDR;
-			break;
-		case 2:
-			addr = LTC235X_SOFTSPAN_CHAN2_ADDR;
-			break;
-		case 3:
-			addr = LTC235X_SOFTSPAN_CHAN3_ADDR;
-			break;
-		case 4:
-			addr = LTC235X_SOFTSPAN_CHAN4_ADDR;
-			break;
-		case 5:
-			addr = LTC235X_SOFTSPAN_CHAN5_ADDR;
-			break;
-		case 6:
-			addr = LTC235X_SOFTSPAN_CHAN6_ADDR;
-			break;
-		case 7:
-			addr = LTC235X_SOFTSPAN_CHAN7_ADDR;
-			break;
-		default:
-			// return error
-	}
+	if (ch_id < 0 || ch_id > 7)
+		return // todo error
 
 	// write softspan to a channel depending on what channel id
-	axi_ltc235x_write(st, addr, softspan); // todo: i need the register address of softspan here
+	axi_ltc235x_write(st, LTC235X_SOFTSPAN_ADDR(ch_id), softspan); // todo: i need the register address of softspan here
 	return 0
 }
 
