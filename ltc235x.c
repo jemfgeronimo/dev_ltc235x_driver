@@ -2,6 +2,10 @@
 #include <linux/mod_devicetable.h>
 #include <linux/platform_device.h>
 
+#include <linux/iio/buffer.h>
+#include <linux/iio/buffer_impl.h>
+#include <linux/iio/buffer-dma.h>
+#include <linux/iio/buffer-dmaengine.h>
 #include <linux/iio/iio.h>
 #include <linux/iio/types.h>
 #include <linux/iio/pwm.h>
@@ -28,6 +32,9 @@ static int ltc235x_read_raw (struct iio_dev *indio_dev,
 	switch (info) {
 	case IIO_CHAN_INFO_RAW:
 		// this here needs the dma buffer
+		break;
+	case IIO_CHAN_INFO_SAMP_FREQ:
+		
 		break;
 	default:
 		return -EINVAL;
@@ -86,10 +93,24 @@ static const struct iio_info ltc235x_info = {
 	.write_raw = ltc235x_write_raw, // todo
 }
 
+static int hw_submit_block(struct iio_dma_buffer_queue *queue,
+	struct iio_dma_buffer_block *block)
+{
+	block->block.bytes_used = block->block.size;
+
+	return iio_dmaengine_buffer_submit_block(queue, block, DMA_DEV_TO_MEM);
+}
+
+static const struct iio_dma_buffer_ops dma_buffer_ops = {
+	.submit = hw_submit_block,
+	.abort = iio_dmaengine_buffer_abort,
+};
+
 static int ltc235x_probe (struct platform_device *pdev)
 {
 	struct iio_dev *indio_dev;
 	struct ltc235x_state *st;
+	struct iio_buffer *buffer;
 	
 	indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*st));
 	if (!indio_dev)
@@ -101,6 +122,10 @@ static int ltc235x_probe (struct platform_device *pdev)
 	indio_dev->num_channels = LTC235X_NUM_CHANNELS;
 	indio_dev->channels = ltc235x_channels; // todo
 
+	buffer = devm_iio_dmaengine_buffer_alloc(&pdev->dev, "rx", &dma_buffer_ops, indio_dev); // todo
+	if (IS_ERR(buffer))
+		return PTR_ERR(buffer);
+	iio_device_attach_buffer(indio_dev, buffer);
 
 	// todo
 	// set default samp frequency
